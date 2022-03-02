@@ -22,6 +22,8 @@ boolean overDamped = false;
 
 float globalR = 30;
 float globalM = 1;
+// Set to 1 to ignore anneling (slowly deteriorates particle velocities
+float annelingFactor = 0.9999;
 
 // Particles will only be colored based on their first charge
 // Length needs to be charges[0] or larger, each element is a color
@@ -232,6 +234,10 @@ void updatePositions() {
           vel[i][d] -= p * Rvec[d];
         }
       }
+      // Perform anneling (parasitic friction
+      for(int d = 0; d < dim; d++) 
+        vel[i][d] *= annelingFactor;
+      
     } // end j
   } // end i
 }

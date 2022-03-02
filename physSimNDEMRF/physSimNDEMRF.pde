@@ -7,7 +7,7 @@ int forceCount = 1;
 // Length needs to be force count
 // Larger eps values indicate stronger force
 //float eps[] = {100000}; // Used for 2D  R == 20
-float eps[] = {8000000}; // Used for 3D   R == 20
+float eps[] = {40000000}; // Used for 3D   R == 20
 //float eps[] = {400000000}; // Used for 4D   R == 20
 //float eps[] = {600000000000f}; // Used for 5D   R == 30
 //float eps[] = {4000000}; // Used for overdamped 3D   R == 20
@@ -22,6 +22,8 @@ boolean overDamped = false;
 
 float globalR = 30;
 float globalM = 1;
+float annelingFactor = 0.9999;
+
 
 // Particles will only be colored based on their first charge
 // Length needs to be charges[0] or larger, each element is a color
@@ -145,7 +147,7 @@ void draw(){
 void updatePositions() {
   float Rvec[] = new float[dim]; // The distance vector
   float r, p, k;
-  float delta = 6; // A parameter for how forceful the repulsion is
+  float delta = 10; // A parameter for how forceful the repulsion is
   for(int i = 0; i < n; i++){
     // Update the position of particles based on the forces
     float F[] = new float[dim]; // Forces for a given particle
@@ -163,7 +165,7 @@ void updatePositions() {
         k = -((dim-1)/(S*(dim+delta))) * eps[f] * forceTensor[f][Ch[i][f]][Ch[j][f]] * pow(R[i], delta+1);
         for(int d = 0; d < dim; d++) {
           F[d] += (eps[f])*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
-          F[d] += abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
+          F[d] += 0.5*abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
         }
       } // end j
       
@@ -175,6 +177,8 @@ void updatePositions() {
         for(int d = 0; d < dim; d++)
           vel[i][d] += dt * F[d] / M[i];
       }
+      for(int d = 0; d < dim; d++) 
+        vel[i][d] *= annelingFactor;
       //
     } // end forces loop  
   } // end i
