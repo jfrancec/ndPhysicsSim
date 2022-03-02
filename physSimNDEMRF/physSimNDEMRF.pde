@@ -7,8 +7,9 @@ int forceCount = 1;
 // Length needs to be force count
 // Larger eps values indicate stronger force
 //float eps[] = {100000}; // Used for 2D  R == 20
-float eps[] = {12000000}; // Used for 3D   R == 20
+float eps[] = {8000000}; // Used for 3D   R == 20
 //float eps[] = {400000000}; // Used for 4D   R == 20
+//float eps[] = {600000000000f}; // Used for 5D   R == 30
 //float eps[] = {4000000}; // Used for overdamped 3D   R == 20
 //float eps[] = {6000000}; // Used for overdamped 3D   R == 30
 // Length needs to be force count
@@ -19,7 +20,7 @@ float forceTensor[][][] = {{{1, -1}, {-1, 1}}}; // For standard EM
 boolean overDamped = false;
 
 
-float globalR = 20;
+float globalR = 30;
 float globalM = 1;
 
 // Particles will only be colored based on their first charge
@@ -44,7 +45,7 @@ float S; // Surface hyper surface of an n-sphere
 final float pi = 3.14159265;
 
 // Number of time updates per frame
-final int framesPerFrame = 2;
+final int framesPerFrame = 6;
 final float dt = 1/(30.0*framesPerFrame);
 
 boolean doMovie = false;
@@ -143,7 +144,8 @@ void draw(){
 
 void updatePositions() {
   float Rvec[] = new float[dim]; // The distance vector
-  float r, p;
+  float r, p, k;
+  float delta = 6; // A parameter for how forceful the repulsion is
   for(int i = 0; i < n; i++){
     // Update the position of particles based on the forces
     float F[] = new float[dim]; // Forces for a given particle
@@ -158,8 +160,10 @@ void updatePositions() {
           Rvec[d] = pos[i][d] - pos[j][d];
           r += Rvec[d] * Rvec[d];
         }
+        k = -((dim-1)/(S*(dim+delta))) * eps[f] * forceTensor[f][Ch[i][f]][Ch[j][f]] * pow(R[i], delta+1);
         for(int d = 0; d < dim; d++) {
           F[d] += (eps[f])*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
+          F[d] += abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
         }
       } // end j
       
@@ -175,13 +179,15 @@ void updatePositions() {
     } // end forces loop  
   } // end i
   
-  
   // Change positions of particles and resolve collisions
   for(int i = 0; i < n; i++) {
     for(int d = 0; d < dim; d++) {
       pos[i][d] += dt * vel[i][d];
     } 
-    
+  }
+  
+  
+  for(int i = 0; i < n; i++) {  
     // Check for boundary collisions
     for(int d = 0; d < dim; d++) {
       if(d == 0) {
@@ -202,7 +208,7 @@ void updatePositions() {
       }
     } // end for
     
-    //if(true) continue;
+    if(true) continue;
 
     // Check for particle-particle collisions
     for(int j = 0; j < n; j++) {
@@ -231,6 +237,7 @@ void updatePositions() {
       }
     } // end j
   } // end i
+  
 }
 
 void keyPressed() {
