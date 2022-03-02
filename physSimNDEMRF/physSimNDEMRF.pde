@@ -20,9 +20,14 @@ float forceTensor[][][] = {{{1, -1}, {-1, 1}}}; // For standard EM
 boolean overDamped = false;
 
 
-float globalR = 30;
+float globalR = 50;
 float globalM = 1;
-float annelingFactor = 0.9999;
+// Set to 1 to ignore anneling (slowly deteriorates particle velocities
+float annelingFactor = 0.999;
+//float annelingFactor = 1.001; // For overdamped
+float repulsiveForceStrength = 0.9; // Scales distance for repulsion to take affect
+float delta = 10; // A parameter for how forceful the repulsion is
+//float delta = 4; // For overdamped
 
 
 // Particles will only be colored based on their first charge
@@ -147,7 +152,6 @@ void draw(){
 void updatePositions() {
   float Rvec[] = new float[dim]; // The distance vector
   float r, p, k;
-  float delta = 10; // A parameter for how forceful the repulsion is
   for(int i = 0; i < n; i++){
     // Update the position of particles based on the forces
     float F[] = new float[dim]; // Forces for a given particle
@@ -165,7 +169,7 @@ void updatePositions() {
         k = -((dim-1)/(S*(dim+delta))) * eps[f] * forceTensor[f][Ch[i][f]][Ch[j][f]] * pow(R[i], delta+1);
         for(int d = 0; d < dim; d++) {
           F[d] += (eps[f])*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
-          F[d] += 0.5*abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
+          F[d] += repulsiveForceStrength*abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
         }
       } // end j
       
@@ -177,9 +181,10 @@ void updatePositions() {
         for(int d = 0; d < dim; d++)
           vel[i][d] += dt * F[d] / M[i];
       }
+      // Perform anneling (parasitic friction
       for(int d = 0; d < dim; d++) 
         vel[i][d] *= annelingFactor;
-      //
+      
     } // end forces loop  
   } // end i
   
