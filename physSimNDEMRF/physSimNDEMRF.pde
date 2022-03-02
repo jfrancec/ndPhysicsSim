@@ -22,7 +22,7 @@ boolean overDamped = false;
 
 float globalR = 50;
 float globalM = 1;
-// Set to 1 to ignore anneling (slowly deteriorates particle velocities
+// Set to 1 to ignore anneling (slowly deteriorates particle velocities)
 float annelingFactor = 0.999;
 //float annelingFactor = 1.001; // For overdamped
 float repulsiveForceStrength = 0.9; // Scales distance for repulsion to take affect
@@ -47,6 +47,8 @@ float R[];
 float M[];
 // Particle charges [particle number][charge type]
 int Ch[][];
+// Particle charge strengths
+float Cstrength[][];
 
 float S; // Surface hyper surface of an n-sphere
 final float pi = 3.14159265;
@@ -78,7 +80,12 @@ void setup() {
   M = new float[n];
   float r, minr;
   Ch = new int[n][forceCount];
+  Cstrength = new float[n][forceCount];
   for(int i = 0; i < n; i++) {
+    // Set the strength of charge for each particle
+    for(int f = 0; f < forceCount; f++) {
+      Cstrength[i][f] = 1;
+    }
     // Set the radius of the particles
     R[i] = globalR;
     // Set the masses of the particles
@@ -168,7 +175,7 @@ void updatePositions() {
         }
         k = -((dim-1)/(S*(dim+delta))) * eps[f] * forceTensor[f][Ch[i][f]][Ch[j][f]] * pow(R[i], delta+1);
         for(int d = 0; d < dim; d++) {
-          F[d] += (eps[f])*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
+          F[d] += (eps[f])*Cstrength[i][f]*Cstrength[j][f]*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
           F[d] += repulsiveForceStrength*abs(k/(pow(r, (dim+delta)/2.0))) * Rvec[d];
         }
       } // end j

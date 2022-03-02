@@ -2,14 +2,14 @@ import com.hamoid.*;
 VideoExport videoExport;
 
 int n = 300;
-int dim = 5;
+int dim = 3;
 int forceCount = 1;
 // Length needs to be force count
 // Larger eps values indicate stronger force
 //float eps[] = {100000}; // Used for 2D  R == 20
-//float eps[] = {8000000}; // Used for 3D   R == 20
+float eps[] = {12000000}; // Used for 3D   R == 20
 //float eps[] = {400000000}; // Used for 4D   R == 20
-float eps[] = {600000000000f}; // Used for 5D   R == 30
+//float eps[] = {600000000000f}; // Used for 5D   R == 30
 //float eps[] = {4000000}; // Used for overdamped 3D   R == 20
 //float eps[] = {6000000}; // Used for overdamped 3D   R == 30
 // Length needs to be force count
@@ -20,10 +20,10 @@ float forceTensor[][][] = {{{1, -1}, {-1, 1}}}; // For standard EM
 boolean overDamped = false;
 
 
-float globalR = 30;
+float globalR = 20;
 float globalM = 1;
 // Set to 1 to ignore anneling (slowly deteriorates particle velocities
-float annelingFactor = 0.9999;
+float annelingFactor = 1.00000;
 
 // Particles will only be colored based on their first charge
 // Length needs to be charges[0] or larger, each element is a color
@@ -42,12 +42,14 @@ float R[];
 float M[];
 // Particle charges [particle number][charge type]
 int Ch[][];
+// Particle charge strength
+float Cstrength[][];
 
 float S; // Surface hyper surface of an n-sphere
 final float pi = 3.14159265;
 
 // Number of time updates per frame
-final int framesPerFrame = 6;
+final int framesPerFrame = 2;
 final float dt = 1/(30.0*framesPerFrame);
 
 boolean doMovie = false;
@@ -73,7 +75,12 @@ void setup() {
   M = new float[n];
   float r, minr;
   Ch = new int[n][forceCount];
+  Cstrength = new float[n][forceCount];
   for(int i = 0; i < n; i++) {
+    // Set the charge strengths of the particles
+    for(int f = 0; f < forceCount; f++) {
+      Cstrength[i][f] = 1;
+    }
     // Set the radius of the particles
     R[i] = globalR;
     // Set the masses of the particles
@@ -146,7 +153,7 @@ void draw(){
 
 void updatePositions() {
   float Rvec[] = new float[dim]; // The distance vector
-  float r, p;
+  float r, p1, p2, p;
   for(int i = 0; i < n; i++){
     // Update the position of particles based on the forces
     float F[] = new float[dim]; // Forces for a given particle
@@ -162,7 +169,7 @@ void updatePositions() {
           r += Rvec[d] * Rvec[d];
         }
         for(int d = 0; d < dim; d++) {
-          F[d] += (eps[f])*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
+          F[d] += (eps[f])*Cstrength[i][f]*Cstrength[j][f]*forceTensor[f][Ch[i][f]][Ch[j][f]]/(S*pow(r, dim/2.0)) * Rvec[d];
         }
       } // end j
       
@@ -224,14 +231,18 @@ void updatePositions() {
           pos[i][d] = pos[j][d] + ((R[i]+R[j])/r) * Rvec[d] - ((R[i] + R[j] - r) * Rvec[d] / (2*r));
           pos[j][d] -= ((R[i] + R[j] - r) * Rvec[d] / (2*r));
         }
-        p = 0; // The projection coefficient
+        p1 = 0; p2 = 0; // The projection coefficients
         for(int d = 0; d < dim; d++) {
           Rvec[d] = pos[i][d] - pos[j][d];
-          p += vel[i][d]*Rvec[d];
+          p1 += vel[i][d]*Rvec[d];
+          p2 += vel[j][d]*Rvec[d];
         }
-        p /= (r*r);
+        p1 /= (r*r);
+        p2 /= (r*r);
+        p = (M[i]*p1+M[j]*p2)/(M[i]+M[j]);
         for(int d = 0; d < dim; d++) {
-          vel[i][d] -= p * Rvec[d];
+          vel[i][d] -= (p1-p) * Rvec[d];
+          vel[j][d] -= (p2-p) * Rvec[d];
         }
       }
       // Perform anneling (parasitic friction
